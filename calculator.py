@@ -12,7 +12,7 @@ interaction_str = dict(
 
 def _calc(number_1: float, number_2: float, operator: int) -> float:
     """
-    Simple arithmetic operations on two numbers
+    Simple arithmetic operations on two numbers.
     """
     if operator == 1:
         return number_1 + number_2
@@ -28,10 +28,7 @@ def calculator() -> None:
     """
     Prompt the user to enter two numbers.
     Prompt the user to select an operation from the following options:
-        addition
-        subtraction
-        multiplication
-        division
+    addition, subtraction, multiplication, division.
     Based on the selected operation, the corresponding calculation is performed.
     Display the result to the user.
     """

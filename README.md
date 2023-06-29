@@ -1,17 +1,13 @@
-# (Task 1)[https://github.com/devops01ua/python01-hw/blob/main/HW1.md]
+# [Task 1](https://github.com/devops01ua/python01-hw/blob/main/HW1.md)
 
-```
+```bash
 python ./calculator.py
 ```
 
 ---
 
-# (Task 2)[https://github.com/devops01ua/python01-hw/blob/main/HW1-advanced.md]
-
-```
-python ./gen_password.py
-```
+# [Task 2](https://github.com/devops01ua/python01-hw/blob/main/HW1-advanced.md)
 
 ```bash
-Please select an operation:
+python ./gen_password.py
 ```
