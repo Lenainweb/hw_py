@@ -1,17 +1,22 @@
-from random import choice
+#!/usr/bin/env python3
+
+from time import time_ns
+from random import choices
 from string import ascii_lowercase, ascii_uppercase, digits, punctuation
 
 
 MIN_LEN_PWD = 6
+LEN_FOR_FILE_PWD = 128
 
 interaction_str = dict(
     welcome="Welcome to the Linux User Password Generator!\n",
-    prompt="Please enter the desired password length: ",
+    prompt=f"Please enter the desired password length (skip to generate password with default length {MIN_LEN_PWD}): ",
     result="\nGenerated password: ",
-    length_error=f"Enter a number of minimum length: {MIN_LEN_PWD}",
+    length_error=f"Enter an integer, minimum password length: {MIN_LEN_PWD}",
+    refine_len=f"The password is longer than {LEN_FOR_FILE_PWD} characters. "
+    "Are you sure you want a password of the given length (the password will be saved in a file)? (N/y): ",
+    pwd_saved_to_file="Password saved to file",
 )
-
-characters = ascii_lowercase + ascii_uppercase + digits + punctuation
 
 
 def check_strict(pwd: str) -> bool:
@@ -19,27 +24,40 @@ def check_strict(pwd: str) -> bool:
     Check password to contains at least one uppercase letter,
     lowercase letter, number, special character.
     """
-    if (
+    return not (
         set(ascii_lowercase).isdisjoint(pwd)
         or set(ascii_uppercase).isdisjoint(pwd)
         or set(digits).isdisjoint(pwd)
         or set(punctuation).isdisjoint(pwd)
-    ):
-        return False
-    return True
+    )
 
 
-def _gen_pwd(length: int) -> str:
+def _gen_pwd(length: int = MIN_LEN_PWD) -> str:
     """
     Generate a random password consisting of a
     combination of uppercase letters, lowercase letters,
     numbers, and special characters.
     """
-    result = [choice(characters) for i in range(length)]
-    return "".join(result)
+    characters = ascii_lowercase + ascii_uppercase + digits + punctuation
+    pwd = "".join(choices(characters, k=length))
+
+    if check_strict(pwd):
+        return pwd
+
+    return _gen_pwd(length=length)
 
 
-def gen_pwd() -> None:
+def save_pwd_to_file(pwd: str) -> str:
+    """Write password to file."""
+
+    filename = "password_" + str(time_ns()) + ".txt"
+    with open(filename, "w") as file:
+        file.write(pwd)
+
+    return filename
+
+
+def generate_password() -> None:
     """
     Prompt the user to enter the desired length for the password.
     Generate a random password consisting of a combination of uppercase
@@ -48,23 +66,37 @@ def gen_pwd() -> None:
     """
     print(interaction_str["welcome"])
 
-    try:
-        length = int(input(interaction_str["prompt"]))
-    except ValueError as e:
-        print(interaction_str["length_error"])
-        exit(2)
+    while True:
+        length = input(interaction_str["prompt"])
 
-    if length < MIN_LEN_PWD:
-        print(interaction_str["length_error"])
-        exit(2)
+        if not length:
+            length = MIN_LEN_PWD
+        else:
+            try:
+                length = int(length)
+            except ValueError:
+                print(interaction_str["length_error"])
+                continue
 
-    pwd = _gen_pwd(length)
+        if length < MIN_LEN_PWD:
+            print(interaction_str["length_error"])
+            continue
 
-    while not check_strict(pwd):
-        pwd = _gen_pwd(length)
+        if length > LEN_FOR_FILE_PWD:
+            confirmation = input(interaction_str["refine_len"])
 
-    print(interaction_str["result"], pwd)
+            if confirmation.lower() == "y":
+                pwd = _gen_pwd(length)
+                filename = save_pwd_to_file(pwd)
+                print(interaction_str["pwd_saved_to_file"], filename)
+                break
+            continue
+
+        else:
+            pwd = _gen_pwd(length)
+            print(interaction_str["result"], pwd)
+            break
 
 
 if __name__ == "__main__":
-    gen_pwd()
+    generate_password()
