@@ -87,6 +87,9 @@ def get_pwd_len() -> int:
                 return get_pwd_len()
 
             length = int(length)
+        except UnicodeDecodeError:
+            print("I am decoding error. Then someday they'll fix me. Try again.")
+            return get_pwd_len()
         except ValueError:
             print(interaction_str["length_error"])
             return get_pwd_len()
@@ -110,7 +113,14 @@ def save_pwd_to_file(pwd: str) -> None:
     """
     Get the file name and path from the user, write the password there.
     """
-    file_path = input(interaction_str["prompt_path"]) or FILE_PATH
+    home = path.expanduser("~")
+    file_path = (
+        input(interaction_str["prompt_path"])
+        .replace("~", home)
+        .replace("$(HOME)", home)
+        .replace("$HOME", home)
+        or FILE_PATH
+    )
     file_name = input(interaction_str["prompt_filename"]) or FILE_NAME
     path_name_file = path.join(file_path, file_name)
 
@@ -127,7 +137,7 @@ def save_pwd_to_file(pwd: str) -> None:
         file = write_file(path_name_file, pwd)
         print(interaction_str["pwd_saved_to_file"], file)
         return None
-    except FileNotFoundError:
+    except (FileNotFoundError, NotADirectoryError):
         print(interaction_str["not_found_error"])
         return save_pwd_to_file(pwd)
     except PermissionError:
