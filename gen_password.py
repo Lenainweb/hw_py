@@ -1,21 +1,35 @@
 #!/usr/bin/env python3
 
-from time import time_ns
+from os import path
 from random import choices
 from string import ascii_lowercase, ascii_uppercase, digits, punctuation
 
 
-MIN_LEN_PWD = 6
-LEN_FOR_FILE_PWD = 128
+MIN_LEN_PWD = 4
+LEN_PWD = 12
+LONG_PDW = 128
+MAX_LEN_PWD = 1000000
+
+FILE_NAME = "password.txt"
+FILE_PATH = "./"
 
 interaction_str = dict(
     welcome="Welcome to the Linux User Password Generator!\n",
-    prompt=f"Please enter the desired password length (skip to generate password with default length {MIN_LEN_PWD}): ",
+    prompt_len_pwd=f"Please enter the desired password length"
+    f"(skip to generate password with default length {LEN_PWD}): ",
+    prompt_save_in_file="Do you want to save the password to a file? (N/y): ",
+    prompt_path="Enter the path to the file (skip to save in current directory) ",
+    prompt_filename=f"Enter the desired filename (skip to save with default name '{FILE_NAME}') ",
+    refine_filename="Such a file already exists. Overwrite? (N/y): ",
     result="\nGenerated password: ",
-    length_error=f"Enter an integer, minimum password length: {MIN_LEN_PWD}",
-    refine_len=f"The password is longer than {LEN_FOR_FILE_PWD} characters. "
-    "Are you sure you want a password of the given length (the password will be saved in a file)? (N/y): ",
-    pwd_saved_to_file="Password saved to file",
+    length_error=f"Enter an integer, minimum password length: {MIN_LEN_PWD},"
+    f" maximum password length: {MAX_LEN_PWD}",
+    refine_len=f"The password is longer than {LONG_PDW} characters. "
+    "Are you sure you want a password of the given length? (N/y): ",
+    pwd_saved_to_file="\nPassword saved to file: ",
+    access_error="No permission to write the file at the given address.",
+    not_found_error="Specified address not found.",
+    hint_yes_no="Please enter 'Y' (yes) or 'N' (no).",
 )
 
 
@@ -32,7 +46,7 @@ def check_strict(pwd: str) -> bool:
     )
 
 
-def _gen_pwd(length: int = MIN_LEN_PWD) -> str:
+def gen_pwd(length: int = MIN_LEN_PWD) -> str:
     """
     Generate a random password consisting of a
     combination of uppercase letters, lowercase letters,
@@ -44,17 +58,81 @@ def _gen_pwd(length: int = MIN_LEN_PWD) -> str:
     if check_strict(pwd):
         return pwd
 
-    return _gen_pwd(length=length)
+    return gen_pwd(length=length)
 
 
-def save_pwd_to_file(pwd: str) -> str:
+def write_file(filename: str, data: str) -> str:
     """Write password to file."""
 
-    filename = "password_" + str(time_ns()) + ".txt"
     with open(filename, "w") as file:
-        file.write(pwd)
+        file.write(data)
 
     return filename
+
+
+def get_pwd_len() -> int:
+    """
+    Get the desired password length from the user,
+    check if the length matches the given restrictions.
+    """
+    length = input(interaction_str["prompt_len_pwd"]).replace(",", ".")
+
+    if not length:
+        return LEN_PWD
+    else:
+        try:
+            length = float(length)
+            if not length % 1 == 0:
+                print(interaction_str["length_error"])
+                return get_pwd_len()
+
+            length = int(length)
+        except ValueError:
+            print(interaction_str["length_error"])
+            return get_pwd_len()
+
+    if MIN_LEN_PWD <= length <= MAX_LEN_PWD:
+        if length > LONG_PDW:
+            while True:
+                confirmation = input(interaction_str["refine_len"])
+                if not confirmation or confirmation.lower() == "n":
+                    return get_pwd_len()
+                elif confirmation.lower() == "y":
+                    break
+                print(interaction_str["hint_yes_no"])
+        return length
+
+    print(interaction_str["length_error"])
+    return get_pwd_len()
+
+
+def save_pwd_to_file(pwd: str) -> None:
+    """
+    Get the file name and path from the user, write the password there.
+    """
+    file_path = input(interaction_str["prompt_path"]) or FILE_PATH
+    file_name = input(interaction_str["prompt_filename"]) or FILE_NAME
+    path_name_file = path.join(file_path, file_name)
+
+    if path.isfile(path_name_file):
+        while True:
+            confirmation = input(interaction_str["refine_filename"])
+            if not confirmation or confirmation.lower() == "n":
+                return save_pwd_to_file(pwd)
+            elif confirmation.lower() != "y":
+                print(interaction_str["hint_yes_no"])
+                continue
+            break
+    try:
+        file = write_file(path_name_file, pwd)
+        print(interaction_str["pwd_saved_to_file"], file)
+        return None
+    except FileNotFoundError:
+        print(interaction_str["not_found_error"])
+        return save_pwd_to_file(pwd)
+    except PermissionError:
+        print(interaction_str["access_error"])
+        return save_pwd_to_file(pwd)
 
 
 def generate_password() -> None:
@@ -62,40 +140,23 @@ def generate_password() -> None:
     Prompt the user to enter the desired length for the password.
     Generate a random password consisting of a combination of uppercase
     letters, lowercase letters, numbers, and special characters.
-    Display the generated password to the user.
+    Saves the password to a file. Display the generated password to the user.
     """
     print(interaction_str["welcome"])
+    length = get_pwd_len()
+    pwd = gen_pwd(length)
 
     while True:
-        length = input(interaction_str["prompt"])
+        save_to_file = input(interaction_str["prompt_save_in_file"])
 
-        if not length:
-            length = MIN_LEN_PWD
-        else:
-            try:
-                length = int(length)
-            except ValueError:
-                print(interaction_str["length_error"])
-                continue
-
-        if length < MIN_LEN_PWD:
-            print(interaction_str["length_error"])
+        if save_to_file and save_to_file.lower() == "y":
+            save_pwd_to_file(pwd)
+        elif save_to_file and save_to_file.lower() != "n":
+            print(interaction_str["hint_yes_no"])
             continue
+        break
 
-        if length > LEN_FOR_FILE_PWD:
-            confirmation = input(interaction_str["refine_len"])
-
-            if confirmation.lower() == "y":
-                pwd = _gen_pwd(length)
-                filename = save_pwd_to_file(pwd)
-                print(interaction_str["pwd_saved_to_file"], filename)
-                break
-            continue
-
-        else:
-            pwd = _gen_pwd(length)
-            print(interaction_str["result"], pwd)
-            break
+    print(interaction_str["result"], pwd)
 
 
 if __name__ == "__main__":
