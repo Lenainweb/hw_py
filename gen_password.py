@@ -70,6 +70,20 @@ def write_file(filename: str, data: str) -> str:
     return filename
 
 
+def collect_path(file_path: str, file_name: str) -> str:
+    """
+    Replaces value from environment variables.
+    """
+    list_items = [
+        path.expandvars(item.replace("(", "").replace(")", ""))
+        if item.startswith("$")
+        else item
+        for item in file_path.split(path.sep)
+    ]
+
+    return path.join(*list_items, file_name)
+
+
 def get_pwd_len() -> int:
     """
     Get the desired password length from the user,
@@ -113,16 +127,9 @@ def save_pwd_to_file(pwd: str) -> None:
     """
     Get the file name and path from the user, write the password there.
     """
-    home = path.expanduser("~")
-    file_path = (
-        input(interaction_str["prompt_path"])
-        .replace("~", home)
-        .replace("$(HOME)", home)
-        .replace("$HOME", home)
-        or FILE_PATH
-    )
+    file_path = input(interaction_str["prompt_path"]) or FILE_PATH
     file_name = input(interaction_str["prompt_filename"]) or FILE_NAME
-    path_name_file = path.join(file_path, file_name)
+    path_name_file = path.expanduser(collect_path(file_path, file_name))
 
     if path.isfile(path_name_file):
         while True:
